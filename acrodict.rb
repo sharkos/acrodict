@@ -13,6 +13,8 @@ end
 
 $LOAD_PATH.unshift('.')
 
+DATAFILE="./tusa.yml"
+
 module Dictfile
   require 'yaml/store'
 
@@ -68,7 +70,7 @@ end
 class Acronym
 
   def initialize
-    @mydata = Dictfile::load_data('./tusa.yml')
+    @mydata = Dictfile::load_data(DATAFILE)
   end
 
   # Find a value in the Dictionary by specifying the tagname and keyname,
@@ -90,7 +92,20 @@ class Acronym
   #   'keyname' is the acronym key
   #   'definition'   is the definition
   def add(tagname, keyname, definition)
-
+    # See if the acronym already exists
+    if @mydata[tagname].has_key?(keyname)
+      original = @mydata[tagname].fetch(keyname)
+      # Check for duplicate, skip if found
+      if original.include?(definition)
+        #puts "DUPLICATE - SKIPPING"
+        return nil
+      end
+      definition = original.push(definition)
+    else
+      definition = Array.new.push(definition)
+    end
+    @mydata[tagname].store(keyname, definition)
+    Dictfile::save_data(DATAFILE,@mydata)
   end
 
 end
@@ -99,28 +114,8 @@ end
 ### MAIN PROGRAM EXECUTION FOR TESTING ###
 
 ac = Acronym.new
+puts ac.find_bykey("new","tbd")
+ac.add("new","SNAFU","Situation Normal all Fd Up")
+ac.add("new","SNAFU","Situation Normal all Fracked Up")
 
-puts "Manually Loading Data from file (tusa.yml)"
-mydata = Dictfile::load_data('./tusa.yml')
-puts "---[ Data File Info ] ----------------------------------------"
-puts "Data Class = #{mydata.class}"
-puts ""
-
-puts "---[ Object Inspect ]-----------------------------------------"
-puts mydata.inspect
-
-puts "---[ Raw File Output ]----------------------------------------"
-puts mydata.to_yaml
-
-puts "---[ Testing Manual Search ]----------------------------------"
-print "Does 'tbd' exist in 'new': "
-puts mydata["new"].has_key?("tbd")
-print "Does 'tbd' exist in 'verified': "
-puts mydata["verified"].has_key?("tbd")
-
-puts "---[ Testing 'find_bykey()' Search ]--------------------------"
-result = ac.find_bykey('new','tbd')
-puts result.inspect
-print "Data Class = "
-puts result.class
-puts "---[ Done ]---------------------------------------------------"
+puts ac.find_bykey("new","SNAFU")
