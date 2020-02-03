@@ -21,6 +21,7 @@ module Acrodict
   # Makes a sample dictionary file and saves it to a file, and returns the hash back to the program.
   # This method requires a single parameter:
   #   'dictfile' is the output filename to pass to save_data
+  #
   def Acrodict::make_datafile(dictfile)
     datahash = { 'new' =>
                      { 'tbd' => ['To be done.','Tusa be Da-man'],
@@ -57,6 +58,7 @@ module Acrodict
   # This method requires two parameters:
   #   'dictfile' is the output filename
   #   'datahash' is the a valid Ruby Hash class object
+  #
   def Acrodict::save_data(dictfile, datahash)
     f = File.open(dictfile, "w")
     f.puts YAML::dump(datahash)
@@ -65,6 +67,11 @@ module Acrodict
 end
 
 
+# Find a value in the Dictionary by specifying the tagname and keyname,
+# returns the values as an Array or NIL if not found
+# This method requires two parameters:
+#   'tagname' is the category or first level in the hash
+#   'keyname' is the acronym key
 def find_bykey(tagname,keyname)
   mydata = Acrodict::load_data('./tusa.yml')
   if mydata[tagname].has_key?(keyname)
