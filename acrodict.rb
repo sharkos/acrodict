@@ -13,16 +13,14 @@ end
 
 $LOAD_PATH.unshift('.')
 
-module Acrodict
+module Dictfile
   require 'yaml/store'
-
-  datafile = "acronym_data.yaml"
 
   # Makes a sample dictionary file and saves it to a file, and returns the hash back to the program.
   # This method requires a single parameter:
   #   'dictfile' is the output filename to pass to save_data
   #
-  def Acrodict::make_datafile(dictfile)
+  def Dictfile::make_datafile(dictfile)
     datahash = { 'new' =>
                      { 'tbd' => ['To be done.','Tusa be Da-man'],
                        'fyi' => ['For your information', 'forget your insane']
@@ -32,7 +30,7 @@ module Acrodict
                        'FBI' => ['Federal Bureau of Investigation', 'Fortune be Illin']
                      }
                }
-    Acrodict::save_data(dictfile, datahash)
+    Dictfile::save_data(dictfile, datahash)
     return datahash
   end
 
@@ -41,7 +39,7 @@ module Acrodict
   # This method requires one parameter:
   #   'dictfile' is the input filename
   #
-  def Acrodict::load_data(dictfile)
+  def Dictfile::load_data(dictfile)
     if File.exist?(dictfile)
       data = File.open(dictfile)  { |yf| YAML::load( yf ) }
       # => Ensure loaded data is a hash. ie: YAML load was OK
@@ -49,7 +47,7 @@ module Acrodict
         raise "ERROR: Dictionary file uses asn invalid format or a parsing error occurred."
       end
     else
-      data = Acrodict::make_datafile(dictfile)
+      data = Dictfile::make_datafile(dictfile)
     end
     return data
   end
@@ -59,7 +57,7 @@ module Acrodict
   #   'dictfile' is the output filename
   #   'datahash' is the a valid Ruby Hash class object
   #
-  def Acrodict::save_data(dictfile, datahash)
+  def Dictfile::save_data(dictfile, datahash)
     f = File.open(dictfile, "w")
     f.puts YAML::dump(datahash)
     f.close
@@ -67,24 +65,43 @@ module Acrodict
 end
 
 
-# Find a value in the Dictionary by specifying the tagname and keyname,
-# returns the values as an Array or NIL if not found
-# This method requires two parameters:
-#   'tagname' is the category or first level in the hash
-#   'keyname' is the acronym key
-def find_bykey(tagname,keyname)
-  mydata = Acrodict::load_data('./tusa.yml')
-  if mydata[tagname].has_key?(keyname)
-    return mydata[tagname].fetch(keyname)
-  else
-    return nil
+class Acronym
+
+  def initialize
+    @mydata = Dictfile::load_data('./tusa.yml')
   end
+
+  # Find a value in the Dictionary by specifying the tagname and keyname,
+  # returns the values as an Array or NIL if not found
+  # This method requires two parameters:
+  #   'tagname' is the category or first level in the hash
+  #   'keyname' is the acronym key
+  def find_bykey(tagname,keyname)
+    if @mydata[tagname].has_key?(keyname)
+      return @mydata[tagname].fetch(keyname)
+    else
+      return nil
+    end
+  end
+
+  # Adds a value to the Dictionary by specifying the tagname, keyname, and definition.
+  # This method requires three parameters:
+  #   'tagname' is the category or first level in the hash
+  #   'keyname' is the acronym key
+  #   'definition'   is the definition
+  def add(tagname, keyname, definition)
+
+  end
+
 end
+
 
 ### MAIN PROGRAM EXECUTION FOR TESTING ###
 
-puts "Loading Data from file (tusa.yml)"
-mydata = Acrodict::load_data('./tusa.yml')
+ac = Acronym.new
+
+puts "Manually Loading Data from file (tusa.yml)"
+mydata = Dictfile::load_data('./tusa.yml')
 puts "---[ Data File Info ] ----------------------------------------"
 puts "Data Class = #{mydata.class}"
 puts ""
@@ -101,8 +118,9 @@ puts mydata["new"].has_key?("tbd")
 print "Does 'tbd' exist in 'verified': "
 puts mydata["verified"].has_key?("tbd")
 
-puts "---[ Testing 'find_bykey()' Search ]----------------------------------"
-result = find_bykey('new','tbd')
+puts "---[ Testing 'find_bykey()' Search ]--------------------------"
+result = ac.find_bykey('new','tbd')
 puts result.inspect
 print "Data Class = "
-print result.class
+puts result.class
+puts "---[ Done ]---------------------------------------------------"
