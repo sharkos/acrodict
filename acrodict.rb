@@ -73,6 +73,54 @@ class Acronym
     @mydata = Dictfile::load_data(DATAFILE)
   end
 
+  # Adds a value to the Dictionary by specifying the tagname, keyname, and definition.
+  # This method requires three parameters:
+  #   'tagname' is the category or first level in the hash
+  #   'keyname' is the acronym key
+  #   'definition'   is the definition
+  def add(tagname, keyname, definition)
+    # See if the acronym already exists
+    if @mydata[tagname].has_key?(keyname)
+      item = @mydata[tagname].fetch(keyname)
+      # Check for duplicate, skip if found
+      if item.include?(definition)
+        return nil
+      end
+      definition = item.push(definition)
+    else
+      definition = Array.new.push(definition)
+    end
+    @mydata[tagname].store(keyname, definition)
+    Dictfile::save_data(DATAFILE,@mydata)
+  end
+
+  # Delete a value from the Dictionary by specifying the tagname, keyname, and array index.
+  # This method requires three parameters:
+  #   'tagname' is the category or first level in the hash
+  #   'keyname' is the acronym key
+  #   'aindex'  is the array index of the specific entry.
+  #             specifying a -1 will delete the entire record.
+  def del(tagname, keyname, aindex)
+    # See if the acronym already exists
+    if @mydata[tagname].has_key?(keyname)
+     item = @mydata[tagname].fetch(keyname)
+    else
+      return nil # Entry does not exist, so do nothing and return nil
+    end
+      unless item.at(aindex).nil?
+        item.delete_at(aindex)
+      end
+    # If we have removed all definitions, we should delete the acronym from the tag
+    if item.at(0).nil?
+      @mydata[tagname].delete(keyname)
+    else
+      # otherwise, write the updated item to the tag
+      @mydata[tagname].store(keyname, item)
+    end
+    Dictfile::save_data(DATAFILE,@mydata)
+  end
+
+
   # Find a value in the Dictionary by specifying the tagname and keyname,
   # returns the values as an Array or NIL if not found
   # This method requires two parameters:
@@ -85,37 +133,13 @@ class Acronym
       return nil
     end
   end
-
-  # Adds a value to the Dictionary by specifying the tagname, keyname, and definition.
-  # This method requires three parameters:
-  #   'tagname' is the category or first level in the hash
-  #   'keyname' is the acronym key
-  #   'definition'   is the definition
-  def add(tagname, keyname, definition)
-    # See if the acronym already exists
-    if @mydata[tagname].has_key?(keyname)
-      original = @mydata[tagname].fetch(keyname)
-      # Check for duplicate, skip if found
-      if original.include?(definition)
-        #puts "DUPLICATE - SKIPPING"
-        return nil
-      end
-      definition = original.push(definition)
-    else
-      definition = Array.new.push(definition)
-    end
-    @mydata[tagname].store(keyname, definition)
-    Dictfile::save_data(DATAFILE,@mydata)
-  end
-
 end
 
 
 ### MAIN PROGRAM EXECUTION FOR TESTING ###
 
-ac = Acronym.new
-puts ac.find_bykey("new","tbd")
-ac.add("new","SNAFU","Situation Normal all Fd Up")
-ac.add("new","SNAFU","Situation Normal all Fracked Up")
-
-puts ac.find_bykey("new","SNAFU")
+# ac = Acronym.new
+# puts ac.find_bykey("new","tbd")
+# ac.add("new","SNAFU","Situation Normal all Fd Up")
+# ac.add("new","SNAFU","Situation Normal all Fracked Up")
+# puts ac.find_bykey("new","SNAFU")
