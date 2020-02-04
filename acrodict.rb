@@ -86,12 +86,16 @@ class Acronym
       if item.include?(definition)
         return nil
       end
+      # Push the new definition onto the end of array record.
       definition = item.push(definition)
     else
+      # Create a new array and push definition.
       definition = Array.new.push(definition)
     end
+    # Store the updated array to the hash then save it to the Dictfile
     @mydata[tagname].store(keyname, definition)
     Dictfile::save_data(DATAFILE,@mydata)
+    return true
   end
 
   # Delete a value from the Dictionary by specifying the tagname, keyname, and array index.
@@ -100,6 +104,9 @@ class Acronym
   #   'keyname' is the acronym key
   #   'aindex'  is the array index of the specific entry.
   #             specifying a -1 will delete the entire record.
+  #
+  # If the array becomes empty, the keyname will be removed from the tag.
+  #
   def del(tagname, keyname, aindex)
     # See if the acronym already exists
     if @mydata[tagname].has_key?(keyname)
@@ -110,14 +117,38 @@ class Acronym
       unless item.at(aindex).nil?
         item.delete_at(aindex)
       end
-    # If we have removed all definitions, we should delete the acronym from the tag
-    if item.at(0).nil?
+    # If we have removed all definitions or specified -1 as the index,
+    # delete the acronym record from the tag
+    if item.at(0).nil? or aindex == -1
       @mydata[tagname].delete(keyname)
     else
       # otherwise, write the updated item to the tag
       @mydata[tagname].store(keyname, item)
     end
     Dictfile::save_data(DATAFILE,@mydata)
+    return true
+  end
+
+
+  # Return a list of Tags
+  def tags
+    return @mydata.keys
+  end
+
+
+  # Return an array of Acronyms by tagname
+  # This method requires one parameter:
+  #   'tagname' is the category or first level in the hash
+  def list_bytag(tagname)
+    return @mydata[tagname].keys
+  end
+
+  # Return an array of definitions by tagname
+  # This method requires two parameters:
+  #   'tagname' is the category or first level in the hash
+  #   'keyname' is the acronym key
+  def getdef(tagname, keyname)
+    return @mydata[tagname].fetch(keyname)
   end
 
 
@@ -126,6 +157,7 @@ class Acronym
   # This method requires two parameters:
   #   'tagname' is the category or first level in the hash
   #   'keyname' is the acronym key
+  #
   def find_bykey(tagname,keyname)
     if @mydata[tagname].has_key?(keyname)
       return @mydata[tagname].fetch(keyname)
