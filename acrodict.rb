@@ -4,200 +4,109 @@
 #
 # ----------------------------------------------------
 # AcroDict :: Acronym Dictionary
-#
+# file: acrodict.rb
 # Chris Tusa <chris.tusa@leafscale.com>
 # v 0.1
-# ----------------------------------------------------
-
-# Quit if the program runs as 'root'.
-currentuser = `whoami`
-if currentuser.chomp == "root"
-  puts "For security reasons, this program will not run as 'root' exiting..."
-  exit 100
-end
-
+# ---
+#
 $LOAD_PATH.unshift('.')
 
-DATAFILE="./tusa.yml"
-
-##
-# Dictfile module handles the I/O to a dictionary database file on the filesystem
-#
-# AcroDict uses yaml/store to reference objects. The contents of the file are
-# retrieved from disk and stored in nemory as a Ruby::Hash object.
-#
-module Dictfile
-  require 'yaml/store'
-
-  ##
-  # Makes a sample dictionary file and saves it to a file, and returns the hash back to the program.
-  # This method requires a single parameter:
-  # * 'dictfile' is the output filename to pass to save_data
-  #
-  def Dictfile::make_datafile(dictfile)
-    datahash = { 'new' =>
-                     { 'tbd' => ['To be done.','Tusa be Da-man'],
-                       'fyi' => ['For your information', 'forget your insane']
-                     },
-                 'verified' =>
-                     { 'CYA' => ['Cover yer Arse'],
-                       'FBI' => ['Federal Bureau of Investigation', 'Fortune be Illin']
-                     }
-               }
-    Dictfile::save_data(dictfile, datahash)
-    return datahash
-  end
+require 'cinch'
+require 'libdict.rb'
+require 'yaml'
 
 
-  ##
-  # Load the YAML Dictionary from file and return it as a Ruby Hash class object
-  # This method requires one parameter:
-  # * 'dictfile' is the input filename
-  #
-  def Dictfile::load_data(dictfile)
-    if File.exist?(dictfile)
-      data = File.open(dictfile)  { |yf| YAML::load( yf ) }
-      # => Ensure loaded data is a hash. ie: YAML load was OK
-      if data.class != Hash
-        raise "ERROR: Dictionary file uses asn invalid format or a parsing error occurred."
-      end
-    else
-      data = Dictfile::make_datafile(dictfile)
-    end
-    return data
-  end
-
-  ##
-  # Save the Ruby Hash into the YAML Dictionary File
-  # This method requires two parameters:
-  # * 'dictfile' is the output filename
-  # * 'datahash' is the a valid Ruby Hash class object
-  #
-  def Dictfile::save_data(dictfile, datahash)
-    f = File.open(dictfile, "w")
-    f.puts YAML::dump(datahash)
-    f.close
-  end
+# Load the configuration from then config file (yaml)
+def load_settings
+  home_dir = File.expand_path '~/.config'
+  install_dir = File.expand_path File.dirname(__FILE__)
+  cfg_file = 'acrodict.conf'
+  return YAML::load_file("#{home_dir}/#{cfg_file}") if File.exists? "#{home_dir}/#{cfg_file}"
+  return YAML::load_file("#{install_dir}/#{cfg_file}")
 end
 
+# Start the Chat Bot using Cinch
+bot = Cinch::Bot.new do
+    # Load program configuration as 'settings'
+    settings = load_settings
 
-##
-# Acronym class handles the methods for creating, reading, updating and deleting
-# items from the Dictionary stored in Memory and commiting it back to disk.
-class Acronym
+    # Create an instance of the Acronym dictionary as 'db'
+    db = Acronym.new
 
-  ##
-  # The dictionary is loaded when calling .new
-  def initialize
-    @mydata = Dictfile::load_data(DATAFILE)
-  end
+    # Configure the IRC client based on the config file
+    configure do |c|
+     c.nick = settings['nick']         # "acrobot"
+     c.realname = settings['realname'] # "IRC Acronym and Abbreviation Expander Bot. '!help' for help"
+     c.user = settings['user']         # "acrobot" (user name when connecting)
+     c.server = settings['server']     # "irc.freenode.net"
+     c.channels = settings['channels'] # ["#openshift","#satellite6","#zanata","#theforeman","#ansible"]
+     c.prefix = settings['prefix']     # /^!/
+     c.sasl.username = settings['sasl_username'] unless settings['sasl_username'].nil?
+     c.sasl.password = ENV['SASL_PASSWORD'] unless ENV['SASL_PASSWORD'].nil?
+    end
+  
+    ## Add an Acronym
+    on :message, /^!([\w\-\_\+\&\/]+)\=(.+)/ do |m, abbrev, desc|
+      nick = m.channel? ? m.user.nick+": " : ""
+      db.add('new',abbrev,desc)
+      nick = m.channel? ? m.user.nick+"":""
+      m.reply("#{nick} Thanks! [#{abbrev}=#{desc}]")
+    end
+  
 
-  ##
-  # Adds a value to the Dictionary by specifying the tagname, keyname, and definition.
-  # This method requires three parameters:
-  # * 'tagname' is the category or first level in the hash
-  # * 'keyname' is the acronym key
-  # * 'definition'   is the definition
-  def add(tagname, keyname, definition)
-    # See if the acronym already exists
-    if @mydata[tagname].has_key?(keyname)
-      item = @mydata[tagname].fetch(keyname)
-      # Check for duplicate, skip if found
-      if item.include?(definition)
-        return nil
+    ## Get Help
+    on :message, /^!help/i do |m|
+      nick = m.channel? ? m.user.nick+": " : ""
+      m.reply("To expand an acronym, type (e.g.), !ftp")
+      m.reply("To add a new acronym, type (e.g.), !FTP=File Transfer Protocol")
+      m.reply("To associate a tag with an acronym, type (e.g.), !IP=Internet Protocol @networking")
+      m.reply("To list abbreviations associated with a tag, type eg. !@kernel")
+      m.reply("To list all tags, type !@tags")
+      m.reply("AcroBot uses initcaps for expansions by default. Your own style guides may vary.")
+    end
+
+
+    ## Search tags
+    on :message, /^!@([\w\-\_\+\&\/]+)$/ do |m, tag|
+        tag = tag.strip
+        if tag == "tags"  # List all tags
+            output = String.new
+            nick = m.channel? ? m.user.nick+": " : ""
+            m.reply("Avaiable tags: ")
+            db.tags.each do |t|
+              output = t + ", " + output
+            end
+            m.reply("#{output}") 
+        else # return tag
+            match_abbrevs = db.list_bytag(tag)
+            nick = m.channel? ? m.user.nick+": " : ""
+            if match_abbrevs.nil?
+                m.reply("#{nick} Sorry, no such tag. To list all tags, type !@tags")
+            else
+                m.reply("#{nick}#{match_abbrevs.join(', ')}")
+            end
+        end
+    end
+  
+
+    ## Definition Lookup
+    on :message, /^!([\w\-\_\+\&\/]+)$/ do |m, item|
+      item = item.strip
+      reply_str = String.new
+      unless item =~ /^help$/i or item =~ /^!@tags/i 
+        nick_str = m.channel? ? "#{m.user.nick}:" : ""        
+        reply_str.concat(nick_str)
+        result = db.find_key(item)
+
+        # iterate over the results from multiple tags
+        result.each do |k,v|
+            reply_str.concat("@", Cinch::Formatting.format(:bold, k), " : ",Cinch::Formatting.format(:bold, v.to_s), "\n")
+        end
+         m.reply(reply_str)          
       end
-      # Push the new definition onto the end of array record.
-      definition = item.push(definition)
-    else
-      # Create a new array and push definition.
-      definition = Array.new.push(definition)
     end
-    # Store the updated array to the hash then save it to the Dictfile
-    @mydata[tagname].store(keyname, definition)
-    Dictfile::save_data(DATAFILE,@mydata)
-    return true
-  end
+ 
 
-
-  ##
-  # Delete a value from the Dictionary by specifying the tagname, keyname, and array index.
-  # This method requires three parameters:
-  # * 'tagname' is the category or first level in the hash
-  # * 'keyname' is the acronym key
-  # * 'aindex'  is the array index of the specific entry.
-  # *Note* : specifying aindex of -1 will delete the entire record
-  #
-  # If the array becomes empty, the keyname will be removed from the tag.
-  #
-  def del(tagname, keyname, aindex)
-    # See if the acronym already exists
-    if @mydata[tagname].has_key?(keyname)
-     item = @mydata[tagname].fetch(keyname)
-    else
-      return nil # Entry does not exist, so do nothing and return nil
-    end
-      unless item.at(aindex).nil?
-        item.delete_at(aindex)
-      end
-    # If we have removed all definitions or specified -1 as the index,
-    # delete the acronym record from the tag
-    if item.at(0).nil? or aindex == -1
-      @mydata[tagname].delete(keyname)
-    else
-      # otherwise, write the updated item to the tag
-      @mydata[tagname].store(keyname, item)
-    end
-    Dictfile::save_data(DATAFILE,@mydata)
-    return true
-  end
-
-
-  ##
-  # Return a list of Tags
-  def tags
-    return @mydata.keys
-  end
-
-
-  ##
-  # Return an array of Acronyms by tagname
-  # This method requires one parameter:
-  # * 'tagname' is the category or first level in the hash
-  def list_bytag(tagname)
-    return @mydata[tagname].keys
-  end
-
-  ##
-  # Return an array of definitions by tagname
-  # This method requires two parameters:
-  # * 'tagname' is the category or first level in the hash
-  # *  'keyname' is the acronym key
-  def getdef(tagname, keyname)
-    return @mydata[tagname].fetch(keyname)
-  end
-
-
-  ##
-  # Find a value in the Dictionary by specifying the tagname and keyname,
-  # returns the values as an Array or NIL if not found
-  # This method requires two parameters:
-  # * 'tagname' is the category or first level in the hash
-  # * 'keyname' is the acronym key
-  #
-  def find_bykey(tagname,keyname)
-    if @mydata[tagname].has_key?(keyname)
-      return @mydata[tagname].fetch(keyname)
-    else
-      return nil
-    end
-  end
-end
-
-
-### MAIN PROGRAM EXECUTION FOR USAGE EXAMPLES ###
-
-# ac = Acronym.new
-# puts ac.find_bykey("new","tbd")
-# ac.add("new","SNAFU","Situation Normal all Fd Up")
-# ac.add("new","SNAFU","Situation Normal all Fracked Up")
-# puts ac.find_bykey("new","SNAFU")
+  end #/bot do
+  
+bot.start
