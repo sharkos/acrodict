@@ -99,6 +99,17 @@ class Acronym
   # * 'keyname' is the acronym key
   # * 'definition'   is the definition
   def add(tagname, keyname, definition)
+    # See if the tag exists yet, if not create it and add then return
+    if @mydata[tagname].nil?
+      puts "Tag '#{tagname}' not found, trying to add"
+      h = { keyname => Array.new.push(definition)}
+      @mydata.store(tagname, h)
+#      puts "Storing #{keyname} = #{definition} to #{tagname}"
+#      @mydata.store[tagname](keyname, Array.new.push(definition))
+      Dictfile::save_data(DATAFILE,@mydata)
+      return true
+    end
+
     # See if the acronym already exists
     if @mydata[tagname].has_key?(keyname)
       item = @mydata[tagname].fetch(keyname)

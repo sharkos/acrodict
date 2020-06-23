@@ -29,7 +29,7 @@ end
 bot = Cinch::Bot.new do
     # Load program configuration as 'settings'
     settings = load_settings
-
+!
     # Create an instance of the Acronym dictionary as 'db'
     db = Acronym.new
 
@@ -46,13 +46,20 @@ bot = Cinch::Bot.new do
     end
   
     ## Add an Acronym
-    on :message, /^!([\w\-\_\+\&\/]+)\=(.+)/ do |m, abbrev, desc|
+    on :message, /^!([\w\-\_\+\&\/]+)\=(.+)/ do |m, abbrev, meaning|
       nick = m.channel? ? m.user.nick+": " : ""
-      db.add('new',abbrev,desc)
+      # Extract the TAG and Description from the message
+      tag  = meaning.split('@')[1]
+      desc = meaning.split('@')[0]
+      # If the user did not specify the tag, add it the the "new" category
+      if tag.nil?
+        tag = 'new'
+      end  
+      db.add(tag,abbrev,desc)
       nick = m.channel? ? m.user.nick+"":""
-      m.reply("#{nick} Thanks! [#{abbrev}=#{desc}]")
+      m.reply("#{nick} Thanks! [#{abbrev}=#{desc}] added to @#{tag}")
     end
-  
+  !
 
     ## Get Help
     on :message, /^!help/i do |m|
