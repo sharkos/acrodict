@@ -35,13 +35,13 @@ module Dictfile
   # * 'dictfile' is the output filename to pass to save_data
   #
   def Dictfile::make_datafile(dictfile)
-    datahash = { 'new' =>
-                     { 'tbd' => ['To be done.','Tusa be Da-man'],
-                       'fyi' => ['For your information', 'forget your insane']
+    datahash = { 'tag1' =>
+                     { 'key1' => ['definition 0', 'definition 1'],
+                       'key2' => ['definition 0', 'definition 1']
                      },
-                 'verified' =>
-                     { 'CYA' => ['Cover yer Arse'],
-                       'FBI' => ['Federal Bureau of Investigation', 'Fortune be Illin']
+                 'tag2' =>
+                     { 'key1' => ['definition 0', 'definition 1']
+                       'key2' => ['definition 0', 'definition 1']
                      }
                }
     Dictfile::save_data(dictfile, datahash)

@@ -9,6 +9,15 @@
 # v 0.1
 # ---
 #
+
+# Quit if the program runs as 'root'.
+currentuser = `whoami`
+if currentuser.chomp == "root"
+  puts "For security reasons, this program will not run as 'root' exiting..."
+  exit 100
+end
+
+
 $LOAD_PATH.unshift('.')
 
 require 'cinch'
