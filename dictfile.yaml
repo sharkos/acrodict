@@ -3,12 +3,48 @@ new:
   fyi:
   - For your information
   - forget your insane
-  SNAFU:
+  snafu:
   - Situation Normal all Fd Up
   - Situation Normal all Fracked Up
+  test:
+  - This Est Silly Today
+  - New Test 2
+  bork:
+  - Bad Old Rolling Kart
+  knob:
+  - Killer Not On Board
+  cya:
+  - Can You Ask
+  fbi:
+  - First Break It
+  mac:
+  - Mandatory Access Controls
+  casei:
+  - 'Case Insensitive Test '
+  caaei:
+  - 'Case Insensitive Test2 '
 verified:
-  CYA:
+  cya:
   - Cover yer Arse
-  FBI:
+  fbi:
   - Federal Bureau of Investigation
   - Fortune be Illin
+  bork:
+  - Broken On Read Keyboard @verified
+tag2:
+  key2:
+  - value2
+  - value1
+  keyb:
+  - value1
+  - value2
+tag1:
+  keya:
+  - value1
+  keyb:
+  - value1
+  - value2
+fips:
+  mac:
+  - Message Authentication Code
+  - Moronic Access Controls

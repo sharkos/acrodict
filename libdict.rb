@@ -92,6 +92,11 @@ class Acronym
     @mydata = Dictfile::load_data(DATAFILE)
   end
 
+  def refreshdata
+    @mydata = Dictfile::load_data(DATAFILE)
+  end
+
+
   ##
   # Adds a value to the Dictionary by specifying the tagname, keyname, and definition.
   # This method requires three parameters:
@@ -99,6 +104,8 @@ class Acronym
   # * 'keyname' is the acronym key
   # * 'definition'   is the definition
   def add(tagname, keyname, definition)
+    tagname = tagname.downcase
+    keyname = keyname.downcase
     # See if the tag exists yet, if not create it and add then return
     if @mydata[tagname].nil?
       puts "Tag '#{tagname}' not found, trying to add"
@@ -129,8 +136,9 @@ class Acronym
     return true
   end
 
-
-  ##
+=begin
+  ##  THIS IS NOT USED AND NOT REFACTORED
+  #
   # Delete a value from the Dictionary by specifying the tagname, keyname, and array index.
   # This method requires three parameters:
   # * 'tagname' is the category or first level in the hash
@@ -141,6 +149,8 @@ class Acronym
   # If the array becomes empty, the keyname will be removed from the tag.
   #
   def del(tagname, keyname, aindex)
+    tagname = tagname.downcase
+    keyname = keyname.downcase
     # See if the acronym already exists
     if @mydata[tagname].has_key?(keyname)
      item = @mydata[tagname].fetch(keyname)
@@ -162,6 +172,7 @@ class Acronym
     return true
   end
 
+=end
 
   ##
   # Return a list of Tags
@@ -175,6 +186,7 @@ class Acronym
   # This method requires one parameter:
   # * 'tagname' is the category or first level in the hash
   def list_bytag(tagname)
+    tagname = tagname.downcase
     unless @mydata[tagname].nil?
       return @mydata[tagname].keys
     end
@@ -186,6 +198,8 @@ class Acronym
   # * 'tagname' is the category or first level in the hash
   # *  'keyname' is the acronym key
   def getdef(tagname, keyname)
+    tagname = tagname.downcase
+    keyname = keyname.downcase
     return @mydata[tagname].fetch(keyname)
   end
 
@@ -198,6 +212,8 @@ class Acronym
   # * 'keyname' is the acronym key
   #
   def find_key_bytag(tagname,keyname)
+    tagname = tagname.downcase
+    keyname = keyname.downcase
     if @mydata[tagname].has_key?(keyname)
       return @mydata[tagname].fetch(keyname)
     else
@@ -213,6 +229,7 @@ class Acronym
   # * 'keyname' is the acronym key
   #
   def find_key(keyname)
+    keyname = keyname.downcase
     result = {}
     taglist = self.tags
     taglist.each do |t|

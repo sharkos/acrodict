@@ -49,7 +49,7 @@ bot = Cinch::Bot.new do
     on :message, /^!([\w\-\_\+\&\/]+)\=(.+)/ do |m, abbrev, meaning|
       nick = m.channel? ? m.user.nick+": " : ""
       # Extract the TAG and Description from the message
-      tag  = meaning.split('@')[1]
+      tag  = meaning.split('@')[1].downcase
       desc = meaning.split('@')[0]
       # If the user did not specify the tag, add it the the "new" category
       if tag.nil?
@@ -84,6 +84,9 @@ bot = Cinch::Bot.new do
               output = t + ", " + output
             end
             m.reply("#{output}") 
+        elsif tag == "refreshdb"  # Refresh the db
+            db.refreshdata
+            m.reply("Refreshed database")    
         else # return tag
             match_abbrevs = db.list_bytag(tag)
             nick = m.channel? ? m.user.nick+": " : ""
@@ -107,7 +110,10 @@ bot = Cinch::Bot.new do
 
         # iterate over the results from multiple tags
         result.each do |k,v|
-            reply_str.concat("@", Cinch::Formatting.format(:bold, k), " : ",Cinch::Formatting.format(:bold, v.to_s), "\n")
+            # Fix github issue#1 "Remove empty set response from output in the channel"
+            unless v.nil?
+              reply_str.concat("@", Cinch::Formatting.format(:bold, k), " : ",Cinch::Formatting.format(:bold, v.to_s), "\n")
+            end
         end
          m.reply(reply_str)          
       end
